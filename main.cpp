@@ -1,4 +1,7 @@
+#include <string>
 #include "mbed.h"
+#include "easy-connect.h"
+#include "nsapi_dns.h"
 
 // Network interface
 NetworkInterface *net;
@@ -9,7 +12,7 @@ int main() {
     int rcount;
     char *p;
     char *buffer = new char[256];
-    nsapi_size_or_error_t result;
+    nsapi_size_or_error_t r;
 
     // Bring up the ethernet interface
     printf("Mbed OS Socket example\n");
@@ -18,17 +21,24 @@ int main() {
     printf("Mbed OS version: %d.%d.%d\n\n", MBED_MAJOR_VERSION, MBED_MINOR_VERSION, MBED_PATCH_VERSION);
 #endif
 
-    net = NetworkInterface::get_default_instance();
+//    net = NetworkInterface::get_default_instance();
 
+    printf("Easy connect...\n");
+    net = easy_connect(true);
+    if (!net) {
+        printf("Cannot connect to the network, see serial output");
+        return 1;
+    }
+    printf("Connected to the network. Opening a socket...\n");
+ 
     if (!net) {
         printf("Error! No network inteface found.\n");
         return 0;
     }
 
-    result = net->connect();
-    if (result != 0) {
-        printf("Error! net->connect() returned: %d\n", result);
-        return result;
+    r = net->connect();
+    if (r != 0) {
+        printf("Error! net->connect() returned: %d\n", r);
     }
 
     // Show the network address
@@ -39,48 +49,59 @@ int main() {
     printf("Netmask: %s\n", netmask ? netmask : "None");
     printf("Gateway: %s\n", gateway ? gateway : "None");
 
-    // Open a socket on the network interface, and create a TCP connection to api.ipify.org
+    // Open a socket on the network interface, and create a TCP connection to mbed.org
     TCPSocket socket;
+    r = socket.open(net);
+    if (r != 0) {
+        printf("Error! socket.open() returned: %d\n", r);
+    }
+    
+    r = socket.connect("api.ipify.org", 80);
+    //r = socket.connect("23.23.114.123", 80);
+    //r = socket.connect("192.168.0.209", 5000);
+    
+    if (r != 0) {
+        printf("Error! socket.connect() returned: %d\n", r);
+    }
+
     // Send a simple http request
     char sbuffer[] = "GET / HTTP/1.1\r\nHost: api.ipify.org\r\nConnection: close\r\n\r\n";
     nsapi_size_t size = strlen(sbuffer);
 
-    result = socket.open(net);
-    if (result != 0) {
-        printf("Error! socket.open() returned: %d\n", result);
-    }
-
-    result = socket.connect("api.ipify.org", 80);
-    if (result != 0) {
-        printf("Error! socket.connect() returned: %d\n", result);
-        goto DISCONNECT;
-    }
-
-    // Loop until whole request sent
+    // Loop until whole request send
     while(size) {
-        result = socket.send(sbuffer+result, size);
-        if (result < 0) {
-            printf("Error! socket.send() returned: %d\n", result);
-            goto DISCONNECT;
+        r = socket.send(sbuffer+r, size);
+        if (r < 0) {
+            printf("Error! socket.connect() returned: %d\n", r);
+            goto disconnect;
         }
-        size -= result;
-        printf("sent %d [%.*s]\n", result, strstr(sbuffer, "\r\n")-sbuffer, sbuffer);
+        size -= r;
+        printf("sent %d [%.*s]\n", r, strstr(sbuffer, "\r\n")-sbuffer, sbuffer);
     }
 
     // Receieve an HTTP response and print out the response line
     remaining = 256;
     rcount = 0;
     p = buffer;
-    while (0 < (result = socket.recv(p, remaining))) {
-        p += result;
-        rcount += result;
-        remaining -= result;
+
+    r = socket.recv(p, remaining);
+    /*
+    // modified source..a bit strnage...
+    while (0 < (r = socket.recv(p, remaining))) {
+        p += r;
+        rcount += r;
+        remaining -= r;
     }
-    if (result < 0) {
-        printf("Error! socket.recv() returned: %d\n", result);
-        goto DISCONNECT;
+    */
+    if (r < 0) {
+        printf("Error! socket.recv() returned: %d\n", r);
+        goto disconnect;
     }
-	// the HTTP response code
+
+    p += r;
+    rcount += r;
+    remaining -= r;
+
     printf("recv %d [%.*s]\n", rcount, strstr(buffer, "\r\n")-buffer, buffer);
 
     // The api.ipify.org service also gives us the device's external IP address
@@ -88,7 +109,7 @@ int main() {
     printf("External IP address: %.*s\n", rcount-(p-buffer), p);
     delete[] buffer;
 
-DISCONNECT:
+disconnect:
     // Close the socket to return its memory and bring down the network interface
     socket.close();
 
@@ -96,3 +117,4 @@ DISCONNECT:
     net->disconnect();
     printf("Done\n");
 }
+
