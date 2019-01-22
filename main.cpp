@@ -13,7 +13,25 @@ int main() {
     char *p;
     char *buffer = new char[256];
     nsapi_size_or_error_t r;
-
+    
+    (*((volatile uint32_t *)(0x46010200))) = 2; // setSn_TXBUF_SIZE(0,2); Socket 0 TX Buffer Size 2KB
+	(*((volatile uint32_t *)(0x46010220))) = 2; // setSn_RXBUF_SIZE(0,2); Socket 0 RX Buffer Size 2KB
+	(*((volatile uint32_t *)(0x46010201))) = 2; // setSn_TXBUF_SIZE(1,2); Socket 1 TX Buffer Size 2KB
+	(*((volatile uint32_t *)(0x46010221))) = 2; // setSn_RXBUF_SIZE(1,2); Socket 1 RX Buffer Size 2KB
+	(*((volatile uint32_t *)(0x46010202))) = 2; // setSn_TXBUF_SIZE(2,2); Socket 2 TX Buffer Size 2KB
+	(*((volatile uint32_t *)(0x46010222))) = 2; // setSn_RXBUF_SIZE(2,2); Socket 2 RX Buffer Size 2KB
+	(*((volatile uint32_t *)(0x46010203))) = 2; // setSn_TXBUF_SIZE(3,2); Socket 3 TX Buffer Size 2KB
+	(*((volatile uint32_t *)(0x46010223))) = 2; // setSn_RXBUF_SIZE(3,2); Socket 3 RX Buffer Size 2KB
+	(*((volatile uint32_t *)(0x46010204))) = 0; // setSn_TXBUF_SIZE(4,0); Socket 4 TX Buffer Size 0KB
+	(*((volatile uint32_t *)(0x46010224))) = 0; // setSn_RXBUF_SIZE(4,0); Socket 4 RX Buffer Size 0KB
+	(*((volatile uint32_t *)(0x46010205))) = 0; // setSn_TXBUF_SIZE(5,0); Socket 5 TX Buffer Size 0KB
+	(*((volatile uint32_t *)(0x46010225))) = 0; // setSn_RXBUF_SIZE(5,0); Socket 5 RX Buffer Size 0KB
+	(*((volatile uint32_t *)(0x46010206))) = 0; // setSn_TXBUF_SIZE(6,0); Socket 6 TX Buffer Size 0KB
+	(*((volatile uint32_t *)(0x46010226))) = 0; // setSn_RXBUF_SIZE(6,0); Socket 6 RX Buffer Size 0KB
+	//for SRAM... you can use 0x46EE000~0x461F1FFF (16KB) AREA.
+    (*((volatile uint32_t *)(0x46010207))) = 8; // setSn_TXBUF_SIZE(7,8); Socket 7 TX Buffer Size 8KB -> use as SRAM 0x461EE000~0x461EFFFF
+	(*((volatile uint32_t *)(0x46010227))) = 8; // setSn_RXBUF_SIZE(7,8); Socket 7 RX Buffer Size 8KB -> use as SRAM 0x461F0000~0x461F1FFF
+	
     // Bring up the ethernet interface
     printf("Mbed OS Socket example\n");
 
